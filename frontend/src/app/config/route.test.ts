@@ -14,6 +14,8 @@ describe('GET /config', () => {
 
   beforeEach(() => {
     process.env = { ...originalEnv }
+    delete process.env.VERCEL
+    delete process.env.OPEN_NOTEBOOK_API_URL
     delete process.env.API_URL
     delete process.env.NEXT_PUBLIC_API_URL
   })
@@ -25,6 +27,19 @@ describe('GET /config', () => {
   function makeRequest(headers: Record<string, string>) {
     return new NextRequest('http://ignored.example/config', { headers })
   }
+
+  it('keeps Vercel browser requests same-origin despite a stale API_URL', async () => {
+    process.env.VERCEL = '1'
+    process.env.API_URL = 'http://localhost:5055'
+    const response = await GET(makeRequest({ host: 'notebook.vercel.app' }))
+    expect(await response.json()).toEqual({ apiUrl: '/api' })
+  })
+
+  it('does not expose the binding URL during vercel dev', async () => {
+    process.env.OPEN_NOTEBOOK_API_URL = 'http://internal-service.example/'
+    const response = await GET(makeRequest({ host: 'localhost:3000' }))
+    expect(await response.json()).toEqual({ apiUrl: '/api' })
+  })
 
   it('uses API_URL env var when explicitly set, ignoring headers', async () => {
     process.env.API_URL = 'https://configured.example.com'
