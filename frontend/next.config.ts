@@ -28,6 +28,10 @@ const nextConfig: NextConfig = {
   // This simplifies reverse proxy configuration - users only need to proxy to port 8502
   // Next.js handles internal routing to the API backend on port 5055
   async rewrites() {
+    // Vercel's top-level service routes own /api. Bindings exist only at
+    // function runtime, so never bake an internal binding into build rewrites.
+    if (process.env.VERCEL === '1') return []
+
     // INTERNAL_API_URL: Where Next.js server-side should proxy API requests
     // Default: http://localhost:5055 (single-container deployment)
     // Override for multi-container: INTERNAL_API_URL=http://api-service:5055

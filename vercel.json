@@ -3,18 +3,45 @@
   "services": {
     "app": {
       "root": ".",
-      "framework": "fastapi"
+      "framework": "fastapi",
+      "entrypoint": "api.main:app"
     },
     "frontend": {
       "root": "frontend",
-      "framework": "nextjs"
+      "framework": "nextjs",
+      "bindings": [
+        {
+          "type": "service",
+          "service": "app",
+          "format": "url",
+          "env": "OPEN_NOTEBOOK_API_URL"
+        }
+      ]
     }
   },
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/api/search/ask",
+      "destination": {
+        "service": "frontend"
+      }
+    },
+    {
+      "source": "/api/sources/:sourceId/chat/sessions/:sessionId/messages",
+      "destination": {
+        "service": "frontend"
+      }
+    },
+    {
+      "source": "/api/:path*",
       "destination": {
         "service": "app"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "frontend"
       }
     }
   ]

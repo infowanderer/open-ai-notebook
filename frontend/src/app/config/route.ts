@@ -60,7 +60,15 @@ function extractHostname(hostHeader: string): string | null {
  *
  * This allows the same Docker image to work in different deployment scenarios.
  */
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
+  // Keep browser traffic on this origin. The client normalizes /api to an
+  // empty base before appending its own /api paths. Never expose the binding.
+  if (process.env.OPEN_NOTEBOOK_API_URL || process.env.VERCEL === '1') {
+    return NextResponse.json({ apiUrl: '/api' })
+  }
+
   // Priority 1: Check if API_URL is explicitly set
   const envApiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL
 

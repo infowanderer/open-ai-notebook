@@ -1,12 +1,18 @@
 import type { NextRequest } from 'next/server'
 
-const INTERNAL_API_URL = process.env.INTERNAL_API_URL || 'http://localhost:5055'
-
 export async function sseProxy(req: NextRequest, upstreamPath: string) {
+  // Read the binding during the request, never during build or in middleware.
+  const boundUrl = process.env.OPEN_NOTEBOOK_API_URL
+  if (process.env.VERCEL === '1' && !boundUrl) {
+    return Response.json({ detail: 'API service binding is unavailable' }, { status: 503 })
+  }
+  const baseUrl = boundUrl || process.env.INTERNAL_API_URL || 'http://localhost:5055'
+  const upstreamUrl = new URL(upstreamPath.replace(/^\/+/, ''), `${baseUrl.replace(/\/+$/, '')}/`)
+  upstreamUrl.search = req.nextUrl.search
   const body = await req.text()
   const auth = req.headers.get('authorization')
 
-  const upstream = await fetch(`${INTERNAL_API_URL}${upstreamPath}`, {
+  const upstream = await fetch(upstreamUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -15,6 +21,7 @@ export async function sseProxy(req: NextRequest, upstreamPath: string) {
     },
     body,
     cache: 'no-store',
+    signal: req.signal,
   })
 
   if (!upstream.ok || !upstream.body) {
